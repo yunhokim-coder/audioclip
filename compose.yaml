@@ -1,0 +1,14 @@
+services:
+  audioclip:
+    build: .
+    ports:
+      - "127.0.0.1:8000:8000"
+    restart: unless-stopped
+    environment:
+      API_TOKEN: ${API_TOKEN:-}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:8000,http://127.0.0.1:8000}
+    tmpfs:
+      - /tmp:size=2G,mode=1777
+    mem_limit: 1g
+    cpus: 2
+    pids_limit: 128

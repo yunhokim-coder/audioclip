@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: yunho-audioclip
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /healthz
+    autoDeployTrigger: off
+    envVars:
+      - key: API_TOKEN
+        generateValue: true
+      - key: MAX_CONCURRENT_JOBS
+        value: "1"
+      - key: ALLOWED_ORIGINS
+        value: https://yunho-audio-clip.linenfoam8.chatgpt.site

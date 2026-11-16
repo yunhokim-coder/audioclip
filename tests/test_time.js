@@ -1,0 +1,22 @@
+// Exercise browser time validation against a two-hour playlist without a browser shim dependency.
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const nodes=new Map();
+const $=id=>{if(!nodes.has(id))nodes.set(id,{value:'00:00:00',classList:{toggle(){}},style:{},addEventListener(){},setAttribute(){}});return nodes.get(id);};
+const context=vm.createContext({document:{getElementById:$},location:{hostname:'test.example',origin:'https://test.example'},localStorage:{getItem(){return ''}},sessionStorage:{getItem(){return ''}},window:{addEventListener(){}},URL,URLSearchParams,console});
+vm.runInContext(fs.readFileSync('dist/app.js','utf8'),context);
+assert.equal(vm.runInContext("parseTime('35:10')",context),2110);
+assert.equal(vm.runInContext("parseTime('00:39:25')",context),2365);
+assert.ok(Number.isNaN(vm.runInContext("parseTime('35:75')",context)));
+assert.ok(Number.isNaN(vm.runInContext("parseTime('-1')",context)));
+vm.runInContext("video={duration:7200}; connected=true",context);
+$('startTime').value='35:10';$('endTime').value='39:25';$('quality').value='192';
+vm.runInContext('updateRange()',context);
+assert.equal($('lengthSummary').textContent,'04:15');
+assert.equal($('convertButton').disabled,false);
+assert.equal($('rangeSummary').textContent,'35:10 → 39:25');
+$('endTime').value='03:00:00';vm.runInContext('updateRange()',context);
+assert.equal($('convertButton').disabled,true);
+$('endTime').value='30:00';vm.runInContext('updateRange()',context);
+assert.equal($('convertButton').disabled,true);
+assert.equal(vm.runInContext("getVideoId('https://youtube.com.evil.test/watch?v=BaW_jenozKc')",context),null);
+console.log('Time validation passed: 2h source, 35:10–39:25 = 04:15; invalid ranges rejected.');
