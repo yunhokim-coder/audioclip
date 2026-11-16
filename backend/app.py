@@ -75,10 +75,25 @@ def run_cmd(args, timeout):
         p.communicate()
         raise RuntimeError('처리 시간이 초과되었습니다. 더 짧은 구간으로 다시 시도해 주세요.')
     if p.returncode:
-        # Never expose cookies, media URLs or full downloader logs to visitors.
-        if any(x in err.lower() for x in ('sign in', 'bot', '403', '429')):
-            raise RuntimeError('유튜브가 이 서버의 요청을 차단했습니다. 서버의 yt-dlp를 업데이트하거나 다른 네트워크에서 실행해 주세요.')
-        raise RuntimeError('영상을 처리하지 못했습니다. 공개 영상인지 확인하고 서버의 yt-dlp를 업데이트해 주세요.')
+        # Log only a fixed category; never expose signed URLs or authentication data.
+        lower = err.lower()
+        if '429' in lower or 'too many requests' in lower:
+            category = 'rate_limited'
+            message = '유튜브 요청 횟수 제한(429)에 걸렸습니다. 반복 요청을 멈추고 시간을 두고 다시 시도해 주세요.'
+        elif any(x in lower for x in ('not a bot', 'sign in', 'login required')):
+            category = 'authentication_required'
+            message = '유튜브가 로그인 또는 사람 확인을 요구했습니다. 이 서버는 해당 인증을 지원하지 않아 영상을 가져올 수 없습니다. 앱의 연결 키 문제가 아닙니다.'
+        elif '403' in lower or 'forbidden' in lower:
+            category = 'access_denied'
+            message = '유튜브가 접근을 거부했습니다(403). 서버 네트워크 제한이나 유튜브의 요청 인증 조건 등이 원인일 수 있으며, 이 메시지만으로 구분할 수 없습니다.'
+        elif any(x in lower for x in ('private video', 'video is unavailable', 'video unavailable', 'not available in your country')):
+            category = 'video_unavailable'
+            message = '비공개·삭제·지역 제한 등으로 이 서버에서 영상을 이용할 수 없습니다.'
+        else:
+            category = 'processing_failed'
+            message = '영상을 처리하지 못했습니다. 공개 영상인지 확인해 주세요. 서버 로그의 downloader_error 항목으로 오류 유형을 확인할 수 있습니다.'
+        print(f'downloader_error category={category} exit_code={p.returncode}', file=sys.stderr, flush=True)
+        raise RuntimeError(message)
     return out
 
 
